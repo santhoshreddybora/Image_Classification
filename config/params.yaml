@@ -1,0 +1,35 @@
+data_ingestion:
+  container_name: 'braindatamri'
+  blob_name: "Brain_Cancer raw MRI data.zip"
+  data_zip_file_path: "./MRI_data_from_Azure/"
+  data_unzip_path: "./MRI_data/"
+
+
+data_augmentation:
+  test_size: 0.2
+  random_state: 42
+  batch_size: 32
+  image_size: (224, 224)
+
+  
+model_builder:
+  model_name: 'resnet50'
+  num_classes: 3
+  weights: 'imagenet'
+  optimizer: 'adam'
+  loss: 'sparse_categorical_crossentropy'
+  metrics: ['accuracy']
+  epochs: 1
+  freeze_base_model: False
+  dense_units: 256
+  activation: 'relu'
+  output_activation: 'softmax'
+  dropout_rate: 0.5
+  layers_to_freeze: 20
+  transfer_epochs: 1
+  batch_size: 32
+  model_config_file_path: 'config/params.yaml'
+  model_save_path: 'output/models'
+  keras_model_path: 'outputs/'
+  transfer_learning_lr: 0.00001
+  mlflow_experiment_name: 'Brain_Classification_Experiment'

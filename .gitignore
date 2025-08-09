@@ -1,0 +1,6 @@
+.env
+MRI_data_from_Azure/
+output/
+outputs/
+logs
+mlruns/
