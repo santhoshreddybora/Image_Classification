@@ -2,8 +2,9 @@ import requests,base64,json
 from pathlib import Path
 import sys
 import os
-Endpoint_URL ="https://rn-end091401.eastus.inference.ml.azure.com/score"
-KEY="3pq66ugB26tGpkjOm6Gb4DoQ87wHGuoFqXCNO3JwZz13Pts8206TJQQJ99BHAAAAAAAAAAAAINFRAZML4Y2r"
+
+Endpoint_URL =os.getenv('Endpoint_URL')
+KEY=os.getenv("KEY")
 
 HEADERS_JSON = {
     "Content-Type": "application/json",
