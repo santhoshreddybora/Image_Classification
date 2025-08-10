@@ -42,7 +42,7 @@ def run(raw_data):
             else: 
                 # Decode base64 image string
                 image_bytes = base64.b64decode(image_data)
-                logging.info("Image received from base64 json ")
+                logging.info("Image received from base64 json")
         if not image_bytes:
             logging.info("No image provided")
             return {"error : No image provided"}
