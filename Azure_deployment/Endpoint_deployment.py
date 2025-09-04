@@ -21,18 +21,31 @@ class AzureDeployment:
 
 # run_id="74d052cc-a937-410a-a234-b6adb8c1fe80"
 # model_path = f"azureml://jobs/{run_id}/outputs/models"
-    def register_model(self,runid):
-        registered_model=self.ml_client.models.create_or_update(
-                Model(
-                    name="brain_classification_model_Restnet50",
-                    version="4",
-                    description="Brain Classification Model using ResNet50",
-                    type=AssetTypes.CUSTOM_MODEL,
-                    path=f"runs:/{runid}/model",  # ✅ Must match the logged artifact path
-                    tags={"framework": "TensorFlow", "version": "2.12"}
+    def register_model(self, runid: str):
+            try:
+                if not runid:
+                    raise ValueError("Run id is required to register the model")
+
+                # Match the artifact_path used in mlflow.keras.log_model
+                model_path = f"runs:/{runid}/model"  
+
+                registered_model = self.ml_client.models.create_or_update(
+                    Model(
+                        name="brain_classification_model_Restnet50",
+                        path=model_path,
+                        description="Brain Classification Model using ResNet50",
+                        type=AssetTypes.MLFLOW_MODEL,   # <-- since you logged with mlflow.keras.log_model
+                        tags={"framework": "TensorFlow", "version": "2.12"}
+                    )
                 )
+
+                logging.info(
+                    f"✅ Registered model: {registered_model.name}, version: {registered_model.version}"
                 )
-        logging.info(f"Registered model: {registered_model.name}, version: {registered_model.version}")
+                return registered_model
+            except Exception as e:
+                logging.error(f"❌ Error occurred while registering the model: {e}")
+                raise e
     
     def deployments(self,model):
         try:
@@ -90,9 +103,9 @@ class AzureDeployment:
 
     def initalize_deployment(self,run_id):
         try:
-            logging.info("Initialize the deployment in azure.")
+            logging.info(f"Initialize the deployment in azure with runid:{run_id}")
             resgistered_model =self.register_model(run_id)
-            model=self.ml_client.models.get(name="brain_classification_model_Restnet50",version='4')
+            model=self.ml_client.models.get(name="brain_classification_model_Restnet50",version=resgistered_model.version)
             scoringuri,scoring_key=self.deployments(model)
             return scoringuri,scoring_key
         except Exception as e:

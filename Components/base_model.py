@@ -14,6 +14,8 @@ from tensorflow.keras.models import load_model
 from entity.artifact_entity import ModelArtifact
 import mlflow.keras
 import tensorflow as tf 
+from dotenv import load_dotenv
+load_dotenv()
 class ModelBuilder:
     def __init__(self,config_path='config/params.yaml'):
         with open(config_path,'r') as file:
@@ -27,7 +29,8 @@ class ModelBuilder:
                 )
 
                 # Set MLflow tracking URI from workspace
-                tracking_uri = ws.get_mlflow_tracking_uri()
+                # tracking_uri = ws.get_mlflow_tracking_uri()
+                tracking_uri=os.getenv("MLFLOW_TRACKING_URI")
                 mlflow.set_tracking_uri(tracking_uri)
                 logging.info(f"MLflow tracking URI set to: {tracking_uri}")
             except Exception as e:
@@ -130,7 +133,7 @@ class ModelBuilder:
             cm = confusion_matrix(y_true, y_pred)
             roc_auc=roc_auc_score(y_true, y_scores,multi_class='ovr', average='macro')
             try:
-                os.makedirs(os.path.dirname(self.config['keras_model_path']), exist_ok=True)
+                os.makedirs(os.path.dirname(self.config['keras_model_path']), exist_ok=True,)
                 # model.save(self.config['model_save_path'])
                 mlflow.keras.save_model(model,path=self.config['keras_model_path'])
                 logging.info(f"Model save success in {self.config['keras_model_path']}")

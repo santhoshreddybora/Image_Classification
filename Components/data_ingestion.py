@@ -10,8 +10,10 @@ import glob
 from entity.artifact_entity import DataIngestionArtifact
 from sklearn.model_selection import train_test_split
 load_dotenv()
+
 with open("./config/params.yaml", "r") as file:
     params = yaml.safe_load(file)['data_ingestion']
+
 conn_str = os.getenv("AZURE_BLOB_CONN_STR")
 if conn_str is None:
     raise ValueError("AZURE_STORAGE_CONNECTION_STRING environment variable is not set.")

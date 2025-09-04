@@ -24,8 +24,9 @@ if __name__ == "__main__":
                                                               class_weights=compute_class_weights_dict)
         logging.info(f"Model: {model_artifact.model}")
         azuredeploy=AzureDeployment()
-        scoring_uri,scoring_key=azuredeploy.initalize_deployment(run_id=model_artifact.run_id)
-        # depolyment_updt= UpdateDeploymnet()  -- if you want to update the deployment we can use this class
+        depolyment_score_uri=azuredeploy.initalize_deployment(run_id=model_artifact.run_id)
+        logging.info(f"Scoring Uri and key : {depolyment_score_uri}")
+        # depolyment_updt= UpdateDeploymnet()  ##if you want to update the deployment we can use this class
         # depolyment_updt.depolymentupdate()
     except Exception as e:
         logging.error(f"An error occurred: {e}")

@@ -2,6 +2,8 @@ import requests,base64,json
 from pathlib import Path
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 Endpoint_URL =os.getenv('Endpoint_URL')
 KEY=os.getenv("KEY")
