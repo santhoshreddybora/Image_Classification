@@ -5,17 +5,18 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 
 
-
 @pytest.fixture(autouse=True)
 def disable_azure_auth(monkeypatch):
     """Prevents Azure ML auth during tests."""
     monkeypatch.setenv("PYTEST_CURRENT_TEST", "1")
     monkeypatch.setenv("MLFLOW_TRACKING_URI", "file:/tmp/mlruns")  # local offline URI
 
+
 @pytest.fixture
 def model_builder_instance():
     """Fixture to create a ModelBuilder instance with default config."""
     return ModelBuilder(config_path="config/params.yaml")
+
 
 def test_model_build_structure(model_builder_instance):
     """✅ Test that build_model returns valid Keras models."""
@@ -23,6 +24,7 @@ def test_model_build_structure(model_builder_instance):
     assert base_model is not None, "Base model should not be None"
     assert model is not None, "Full model should not be None"
     assert len(model.layers) > 0, "Model should contain layers"
+
 
 def test_model_compile_and_fit(model_builder_instance):
     """✅ Test that compile_and_fit runs one short training epoch."""
@@ -46,7 +48,7 @@ def test_model_compile_and_fit(model_builder_instance):
     assert model is not None, "Returned model should not be None"
     metric_names = []
     for m in model.metrics:
-    # Direct metric (e.g., Mean, Accuracy)
+        # Direct metric (e.g., Mean, Accuracy)
         if hasattr(m, "name"):
             metric_names.append(m.name.lower())
 
@@ -57,8 +59,11 @@ def test_model_compile_and_fit(model_builder_instance):
                     metric_names.append(sub_m.name.lower())
 
     print("Extracted metric names:", metric_names)
-    assert any("acc" in m for m in metric_names), f"Expected accuracy metric, found: {metric_names}"
+    assert any(
+        "acc" in m for m in metric_names
+    ), f"Expected accuracy metric, found: {metric_names}"
     assert hasattr(history, "history"), "History object should have a history attribute"
+
 
 def test_model_prediction(model_builder_instance):
     """✅ Test that model predicts on a sample batch."""
@@ -69,14 +74,15 @@ def test_model_prediction(model_builder_instance):
     assert isinstance(preds.numpy(), (tf.Tensor, type(preds.numpy())))
 
 
-
 @pytest.fixture
 def dummy_model():
     """Simple TF model for testing evaluate/predict."""
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(4,)),
-        tf.keras.layers.Dense(3, activation="softmax")
-    ])
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(shape=(4,)),
+            tf.keras.layers.Dense(3, activation="softmax"),
+        ]
+    )
     return model
 
 
@@ -103,7 +109,7 @@ def test_test_model_success(
     mock_log_artifact,
     mock_start_run,
     dummy_model,
-    dummy_dataset
+    dummy_dataset,
 ):
     """✅ Covers success path of test_model()."""
     mock_run = MagicMock()
@@ -133,6 +139,7 @@ def test_test_model_success(
     mock_save_model.assert_called_once()
     mock_log_metric.assert_any_call("test_loss", 0.5)
     mock_log_model.assert_called_once()
+
 
 @patch("mlflow.keras.log_model")
 @patch("mlflow.keras.save_model", side_effect=Exception("Save failed"))

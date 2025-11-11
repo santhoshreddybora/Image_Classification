@@ -1,7 +1,6 @@
 import pytest
 import tensorflow as tf
 import numpy as np
-import os
 from unittest.mock import patch, MagicMock
 from Components.data_Augmentation import DataAugmentation
 from entity.artifact_entity import DataIngestionArtifact
@@ -10,6 +9,7 @@ from entity.artifact_entity import DataIngestionArtifact
 # -------------------------------------------------------------------
 # FIXTURES
 # -------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_data_ingestion_artifact(tmp_path):
@@ -33,6 +33,7 @@ def data_aug_instance(mock_data_ingestion_artifact):
 # -------------------------------------------------------------------
 # TESTS: read_image
 # -------------------------------------------------------------------
+
 
 @patch("cv2.imread", return_value=np.ones((224, 224, 3), dtype=np.uint8) * 255)
 def test_read_image_jpg(mock_imread, data_aug_instance, tmp_path):
@@ -68,7 +69,10 @@ def test_read_image_exception(mock_imread, data_aug_instance, tmp_path):
 # TESTS: preprocess_image
 # -------------------------------------------------------------------
 
-@patch.object(DataAugmentation, "read_image", return_value=np.ones((224, 224, 3), dtype=np.uint8))
+
+@patch.object(
+    DataAugmentation, "read_image", return_value=np.ones((224, 224, 3), dtype=np.uint8)
+)
 def test_preprocess_image_success(mock_read, data_aug_instance):
     """✅ preprocess_image runs augmentation and returns correct shape."""
     img, label = data_aug_instance.preprocess_image("path.jpg", 1, augment=False)
@@ -88,15 +92,18 @@ def test_preprocess_image_fallback(mock_read, data_aug_instance):
 # TESTS: all_files_and_labels
 # -------------------------------------------------------------------
 
+
 def test_all_files_and_labels_success(monkeypatch, data_aug_instance, tmp_path):
     """✅ all_files_and_labels splits data correctly."""
     fake_root = tmp_path / "Brain_Cancer"
     for cls in ["brain_glioma", "brain_menin", "brain_tumor"]:
-        (fake_root / cls).mkdir(parents=True,exist_ok=True)
+        (fake_root / cls).mkdir(parents=True, exist_ok=True)
         for i in range(2):
             (fake_root / cls / f"img_{i}.jpg").write_text("fake")
 
-    X_train, X_test, y_train, y_test = data_aug_instance.all_files_and_labels(str(tmp_path))
+    X_train, X_test, y_train, y_test = data_aug_instance.all_files_and_labels(
+        str(tmp_path)
+    )
     assert len(X_train) > 0
     assert len(X_test) > 0
     assert all(isinstance(x, str) for x in X_train + X_test)
@@ -104,7 +111,7 @@ def test_all_files_and_labels_success(monkeypatch, data_aug_instance, tmp_path):
 
 @patch("glob.glob", side_effect=Exception("glob failed"))
 def test_all_files_and_labels_exception(mock_glob, data_aug_instance, tmp_path):
-    """ all_files_and_labels should handle internal exceptions safely."""
+    """all_files_and_labels should handle internal exceptions safely."""
     try:
         result = data_aug_instance.all_files_and_labels(str(tmp_path))
         # Even if exception, result should be tuple or None
@@ -112,18 +119,22 @@ def test_all_files_and_labels_exception(mock_glob, data_aug_instance, tmp_path):
     except UnboundLocalError:
         #  Known issue in current code: variables undefined on exception
         # Mark as expected failure for code stability tracking
-        pytest.xfail("Known issue: all_files_and_labels does not return default values on exception.")
-
+        pytest.xfail(
+            "Known issue: all_files_and_labels does not return default values on exception."
+        )
 
 
 # -------------------------------------------------------------------
 # TESTS: tf_augment
 # -------------------------------------------------------------------
 
+
 def test_tf_augment_function(data_aug_instance, tmp_path):
     """✅ tf_augment executes tf.py_function and returns tensors."""
+
     def fake_preprocess(path_str, lbl, augment=True):
         return np.ones((224, 224, 3), dtype=np.float32), np.int64(lbl)
+
     data_aug_instance.preprocess_image = fake_preprocess
 
     paths = tf.constant(["img1.jpg", "img2.jpg"])
@@ -141,6 +152,7 @@ def test_tf_augment_function(data_aug_instance, tmp_path):
 # -------------------------------------------------------------------
 # TESTS: create_datasets
 # -------------------------------------------------------------------
+
 
 @patch.object(DataAugmentation, "tf_augment")
 def test_create_datasets_success(mock_tf_augment, data_aug_instance):
@@ -166,12 +178,23 @@ def test_create_datasets_exception(mock_tf_augment, data_aug_instance):
 # TESTS: initiate_data_augmentation
 # -------------------------------------------------------------------
 
+
 def test_initiate_data_augmentation_success(monkeypatch, data_aug_instance):
     """✅ Full success path for initiate_data_augmentation."""
     fake_weights = np.array([1.0, 1.2, 0.8])
-    monkeypatch.setattr("Components.data_Augmentation.compute_class_weight", lambda **_: fake_weights)
-    monkeypatch.setattr(data_aug_instance, "all_files_and_labels", lambda _: (["a.jpg"], ["b.jpg"], [0], [1]))
-    monkeypatch.setattr(data_aug_instance, "create_datasets", lambda *a, **kw: tf.data.Dataset.from_tensor_slices(([0], [0])))
+    monkeypatch.setattr(
+        "Components.data_Augmentation.compute_class_weight", lambda **_: fake_weights
+    )
+    monkeypatch.setattr(
+        data_aug_instance,
+        "all_files_and_labels",
+        lambda _: (["a.jpg"], ["b.jpg"], [0], [1]),
+    )
+    monkeypatch.setattr(
+        data_aug_instance,
+        "create_datasets",
+        lambda *a, **kw: tf.data.Dataset.from_tensor_slices(([0], [0])),
+    )
 
     artifact = data_aug_instance.initiate_data_augmentation()
     assert hasattr(artifact, "train_dataset")
