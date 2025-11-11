@@ -24,7 +24,7 @@ class DataAugmentation:
         self.data_ingestion_artifact = data_ingestion_artifact
         self.train_aug = A.Compose(
             [
-                A.RandomResizedCrop(height=224, weight=224, scale=(0.8, 1.0), p=0.5),
+                A.RandomResizedCrop(height=224, width=224, scale=(0.8, 1.0), p=0.5),
                 A.HorizontalFlip(p=0.5),
                 A.RandomBrightnessContrast(p=0.5),
                 A.Rotate(limit=15, p=0.5),
