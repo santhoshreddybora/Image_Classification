@@ -18,7 +18,7 @@ model_builder:
   weights: 'imagenet'
   optimizer: 'adam'
   loss: 'sparse_categorical_crossentropy'
-  metrics: ['accuracy']
+  metrics: 'accuracy'
   epochs: 1
   freeze_base_model: False
   dense_units: 256

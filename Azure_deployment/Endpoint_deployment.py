@@ -40,11 +40,11 @@ class AzureDeployment:
                 )
 
                 logging.info(
-                    f"✅ Registered model: {registered_model.name}, version: {registered_model.version}"
+                    f" Registered model: {registered_model.name}, version: {registered_model.version}"
                 )
                 return registered_model
             except Exception as e:
-                logging.error(f"❌ Error occurred while registering the model: {e}")
+                logging.error(f" Error occurred while registering the model: {e}")
                 raise e
     
     def deployments(self,model):

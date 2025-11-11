@@ -8,12 +8,13 @@ import base64
 import logging
 import mlflow
 from flask import request
+
 logging.basicConfig(level=logging.INFO)
 logging.info("Your log message")
 def init():
     global model
     model_dir = os.getenv("AZUREML_MODEL_DIR", "outputs")  # fallback to local test
-    model_path =model_path = os.path.join(model_dir, "model") # adjust path
+    model_path = os.path.join(model_dir, "model") # adjust path
     model = mlflow.keras.load_model(model_path)
     logging.info(f"Model loaded from: {model_path}")
 

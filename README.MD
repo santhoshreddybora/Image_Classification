@@ -1,8 +1,8 @@
-🧠 Brain MRI Classification with Azure ML Deployment
+## Brain MRI Classification with Azure ML Deployment
 This project classifies Brain MRI images into different categories using a ResNet50 deep learning model.
 It is fully integrated with Azure Machine Learning for training, experiment tracking (MLflow), and real-time inference deployment.
 
-📌 Features
+### Features
 Data Ingestion from Azure Blob Storage
 Data Augmentation with Albumentations
 Model Training using TensorFlow + Keras (ResNet50)
@@ -13,7 +13,7 @@ JSON Base64 image string
 Direct image file upload
 Postman / Python client support for endpoint testing
 
-🏗 Architecture
+### Architecture
 flowchart LR
     A[Azure Blob Storage] -->|Dataset| B[Data Ingestion]
     B --> C[Data Augmentation]
@@ -42,13 +42,13 @@ Brain_Classification/
 ├── main.py                       # Main pipeline
 ├── requirements.txt              # Dependencies
 ├── README.md                     # Documentation
-⚙️ Environment Setup
+### Environment Setup
 ```
 conda create -n brain_mri python=3.9
 conda activate brain_mri
 pip install -r requirements.txt
 ```
-🚀 Training the Model
+### Training the Model
 ```
 python main.py
 ```

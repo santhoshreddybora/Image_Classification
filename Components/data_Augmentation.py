@@ -18,7 +18,7 @@ class DataAugmentation:
             self.config=yaml.safe_load(file)['data_augmentation']
         self.data_ingestion_artifact = data_ingestion_artifact
         self.train_aug=A.Compose([
-                        A.RandomResizedCrop(224,224,scale=(0.8,1.0),p=0.5),
+                        A.RandomResizedCrop(size=(224,224),scale=(0.8,1.0),p=0.5),
                         A.HorizontalFlip(p=0.5),
                         A.RandomBrightnessContrast(p=0.5),
                         A.Rotate(limit=15, p=0.5),
@@ -43,7 +43,7 @@ class DataAugmentation:
                 img_paths=glob.glob(os.path.join(class_dir,'*'))
                 all_files.extend(img_paths)
                 labels.extend([class_to_index[cls]] * len(img_paths))
-                X_train,X_test,y_train,y_test = train_test_split(all_files, labels, test_size=self.config['test_size'], random_state=self.config['random_state'])
+            X_train,X_test,y_train,y_test = train_test_split(all_files, labels, test_size=self.config['test_size'], random_state=self.config['random_state'])
             logging.info(f"Found {len(all_files)} images across {len(classes)} classes.")
         except Exception as e:
             logging.error(f"Error processing files and labels: {e}")

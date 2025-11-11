@@ -1,0 +1,76 @@
+name: CI - Image Classification (TensorFlow + Azure ML)
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Python
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3️⃣ Cache pip dependencies
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8 tensorflow azure-storage-blob pyyaml
+
+      # 5️⃣ Linting (Flake8)
+      - name: Run linting
+        run: |
+          echo "🔍 Running lint checks..."
+          flake8 Components/ tests/ --max-line-length=120 --ignore=E203,W503,E501
+        continue-on-error: false
+
+      # 6️⃣ Run Unit Tests (Mocked/Azure-independent)
+      - name: Run unit tests with coverage
+        env:
+          CI: "true"
+          PYTEST_CURRENT_TEST: "true"
+          AZURE_BLOB_CONN_STR: "fake_connection_string"
+        run: |
+          echo "🧪 Running pytest suite..."
+          pytest tests/ --disable-warnings -v --cov=Components --cov-report=term-missing --maxfail=1 --cov-fail-under=70
+
+      # 7️⃣ TensorFlow Sanity Check
+      - name: TensorFlow sanity test
+        run: |
+          python - <<EOF
+          import tensorflow as tf
+          print("TensorFlow version:", tf.__version__)
+          model = tf.keras.Sequential([tf.keras.layers.Dense(1, input_shape=(5,))])
+          out = model(tf.random.normal((1,5)))
+          print("✅ Dummy inference successful, output:", out.numpy())
+          EOF
+
+      # 8️⃣ Package artifact for deployment
+      - name: Package for deployment
+        run: |
+          zip -r build_output.zip .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: build_output.zip

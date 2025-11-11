@@ -20,21 +20,24 @@ class ModelBuilder:
     def __init__(self,config_path='config/params.yaml'):
         with open(config_path,'r') as file:
             self.config=yaml.safe_load(file)['model_builder']
-            try:
-                # Connect to Azure ML workspace
-                ws = Workspace(
-                    subscription_id=os.getenv("SUBSCRIPTION_ID"),
-                    resource_group=os.getenv('RESOURCE_GROUP'),
-                    workspace_name=os.getenv('WORKSPACE_NAME')
-                )
+            if not os.getenv("CI", "").lower() == "true" and not os.getenv("PYTEST_CURRENT_TEST"):
+                try:
+                    # Connect to Azure ML workspace (only in real environments)
+                    ws = Workspace(
+                        subscription_id=os.getenv("SUBSCRIPTION_ID"),
+                        resource_group=os.getenv('RESOURCE_GROUP'),
+                        workspace_name=os.getenv('WORKSPACE_NAME')
+                    )
 
-                # Set MLflow tracking URI from workspace
-                # tracking_uri = ws.get_mlflow_tracking_uri()
-                tracking_uri=os.getenv("MLFLOW_TRACKING_URI")
-                mlflow.set_tracking_uri(tracking_uri)
-                logging.info(f"MLflow tracking URI set to: {tracking_uri}")
-            except Exception as e:
-                logging.warning(f"Failed to set MLflow tracking URI from Azure ML: {e}")
+                    tracking_uri = os.getenv("MLFLOW_TRACKING_URI") or ws.get_mlflow_tracking_uri()
+                    mlflow.set_tracking_uri(tracking_uri)
+                    logging.info(f"MLflow tracking URI set to: {tracking_uri}")
+
+                except Exception as e:
+                    logging.warning(f"Failed to set MLflow tracking URI from Azure ML: {e}")
+            else:
+                logging.info(" Skipping Azure ML initialization in CI/Pytest mode")
+    
 
     def build_model(self):
         try :
@@ -65,7 +68,9 @@ class ModelBuilder:
             logging.info("Compiling the model")
             model.compile(optimizer=self.config['optimizer'],
                           loss=self.config['loss'],
-                          metrics=self.config['metrics'])
+                        metrics=[self.config['metrics']]
+                        #   metrics=self.config['metrics']
+                          )
             
             logging.info("Fitting the model")
             history = model.fit(train_dataset,
@@ -90,7 +95,9 @@ class ModelBuilder:
 
             model.compile(optimizer=optimizer,
                           loss=self.config['loss'],
-                          metrics=self.config['metrics'])
+                          metrics=[self.config['metrics']]
+                        #   metrics=self.config['metrics']
+                          )
             logging.info("Compiling the model for transfer learning")
             logging.info(f"Model summary after transfer learning:{model.summary()}")
             logging.info("Fitting the model for transfer learning")
@@ -171,11 +178,11 @@ class ModelBuilder:
             raise e
     def initiate_model_building(self, train_dataset, val_dataset,class_weights):
         try:
-            # logging.info("Initiating model building process")
-            # base_model,model = self.build_model()
-            # model, history = self.compile_and_fit(model, train_dataset, val_dataset, class_weights)
-            # model, history = self.transfer_learning(model, train_dataset, val_dataset,class_weights)
-            model=load_model('outputs/data/model')
+            logging.info("Initiating model building process")
+            base_model,model = self.build_model()
+            model, history = self.compile_and_fit(model, train_dataset, val_dataset, class_weights)
+            model, history = self.transfer_learning(model, train_dataset, val_dataset,class_weights)
+            # model=load_model('outputs/data/model')
             test_loss,test_accuracy,run_id=self.test_model(model, val_dataset)
             logging.info("Model building process completed")
             model_artifact = ModelArtifact(
