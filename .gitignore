@@ -5,3 +5,4 @@ outputs/
 logs
 mlruns/
 MRI_data/
+cd.yaml
