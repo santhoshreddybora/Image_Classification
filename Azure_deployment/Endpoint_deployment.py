@@ -1,3 +1,6 @@
+
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
@@ -8,8 +11,9 @@ from dotenv import load_dotenv
 from logger import logging
 load_dotenv()
 import os
-from entity.artifact_entity import Deployment
+# from entity.artifact_entity import Deployment
 from datetime import datetime
+
 class AzureDeployment:
     def __init__(self,):
         self.ml_client=MLClient(
