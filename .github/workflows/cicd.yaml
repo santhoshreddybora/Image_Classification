@@ -109,7 +109,7 @@ jobs:
           APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.APPINSIGHTS_INSTRUMENTATIONKEY }}
         run: |
           echo " Starting deployment to Azure ML endpoint..."
-          python Azure_deployment/Endpoint_Deployment.py
+          python Azure_deployment/Endpoint_deployment.py
       # 6 (Optional) Show deployed endpoint details
       - name: Show endpoint info
         run: |
