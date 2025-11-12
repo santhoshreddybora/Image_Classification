@@ -9,7 +9,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       # 1️⃣ Checkout repository
       - name: Checkout repository

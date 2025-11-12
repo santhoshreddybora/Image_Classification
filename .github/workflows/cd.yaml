@@ -49,7 +49,6 @@ jobs:
         run: |
           echo " Starting deployment to Azure ML endpoint..."
           python Azure_deployment/Endpoint_Deployment.py
-
       # 7️ (Optional) Show deployed endpoint details
       - name: Show endpoint info
         run: |
