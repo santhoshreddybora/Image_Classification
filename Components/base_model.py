@@ -19,6 +19,7 @@ from entity.artifact_entity import ModelArtifact
 import mlflow.keras
 import tensorflow as tf
 from dotenv import load_dotenv
+from tensorflow.keras.models import load_model
 
 load_dotenv()
 
@@ -39,10 +40,14 @@ class ModelBuilder:
                     )
 
                     tracking_uri = (
-                        os.getenv("MLFLOW_TRACKING_URI") or ws.get_mlflow_tracking_uri()
+                        # os.getenv("MLFLOW_TRACKING_URI") or
+                        ws.get_mlflow_tracking_uri()
                     )
                     mlflow.set_tracking_uri(tracking_uri)
                     logging.info(f"MLflow tracking URI set to: {tracking_uri}")
+                    logging.info(
+                        f"MLFLOW TRACKING URI FROM WS: {ws.get_mlflow_tracking_uri()}"
+                    )
 
                 except Exception as e:
                     logging.warning(
@@ -87,7 +92,7 @@ class ModelBuilder:
             model.compile(
                 optimizer=self.config["optimizer"],
                 loss=self.config["loss"],
-                metrics=[self.config["metrics"]]
+                metrics=[self.config["metrics"]],
                 #   metrics=self.config['metrics']
             )
 
@@ -120,7 +125,7 @@ class ModelBuilder:
             model.compile(
                 optimizer=optimizer,
                 loss=self.config["loss"],
-                metrics=[self.config["metrics"]]
+                metrics=[self.config["metrics"]],
                 #   metrics=self.config['metrics']
             )
             logging.info("Compiling the model for transfer learning")
@@ -179,38 +184,42 @@ class ModelBuilder:
                 logging.info(f"Model save success in {self.config['keras_model_path']}")
             except Exception as e:
                 logging.error(f"Error saving the model: {e}")
-            mlflow.set_experiment("Resnet50_Model_Training")
-            with mlflow.start_run(run_name="Resnet50_Model_Training") as run:
-                mlflow.log_metric("test_loss", test_loss)
-                mlflow.log_metric("test_accuracy", test_accuracy)
-                mlflow.log_metric("accuracy", acc)
-                mlflow.log_metric("precision", prec)
-                mlflow.log_metric("recall", rec)
-                mlflow.log_metric("f1_score", f1)
-                mlflow.log_metric("roc_auc_score", roc_auc)
-                mlflow.log_artifact(
-                    self.config["model_config_file_path"], artifact_path="config"
-                )
-                # mlflow.log_artifact(self.config['keras_model_path'], artifact_path="models")
-                # mlflow.tensorflow.log_model(model,artifact_path='models')
-                mlflow.keras.log_model(
-                    model, artifact_path="model"
-                )  # works with low version of mlflow
-                logging.info("metrics and artifacts logged to azure ML flow")
+            try:
+                mlflow.set_experiment("Resnet50_Model_Training")
+                with mlflow.start_run(run_name="Resnet50_Model_Training") as run:
+                    mlflow.log_metric("test_loss", test_loss)
+                    mlflow.log_metric("test_accuracy", test_accuracy)
+                    mlflow.log_metric("accuracy", acc)
+                    mlflow.log_metric("precision", prec)
+                    mlflow.log_metric("recall", rec)
+                    mlflow.log_metric("f1_score", f1)
+                    mlflow.log_metric("roc_auc_score", roc_auc)
+                    mlflow.log_artifact(
+                        self.config["model_config_file_path"], artifact_path="config"
+                    )
+                    # mlflow.log_artifact(self.config['keras_model_path'], artifact_path="models")
+                    # mlflow.tensorflow.log_model(model,artifact_path='models')
+                    mlflow.keras.log_model(
+                        model, artifact_path="model"
+                    )  # works with low version of mlflow
+                    logging.info("metrics and artifacts logged to azure ML flow")
 
-            run_id = run.info.run_id
-            logging.info(f"Logged to run_id:{run_id}")
-            logging.info(f"Accuracy Score: {acc}")
-            logging.info(
-                f"Classification Report:\n{classification_report(y_true, y_pred)}"
-            )
-            logging.info(f"Confusion Matrix:\n{cm}")
-            logging.info(f"F1 Score: {f1}")
-            logging.info(f"Precision: {prec}")
-            logging.info(f"ROC AUC Score: {roc_auc}")
-            logging.info(f"Recall: {rec}")
-            logging.info("Model testing completed")
-            return test_loss, test_accuracy, run_id
+                    runid = run.info.run_id
+                    print(f"run_id :{runid}")
+                logging.info(f"Logged to run_id:{runid}")
+                logging.info(f"Accuracy Score: {acc}")
+                logging.info(
+                    f"Classification Report:\n{classification_report(y_true, y_pred)}"
+                )
+                logging.info(f"Confusion Matrix:\n{cm}")
+                logging.info(f"F1 Score: {f1}")
+                logging.info(f"Precision: {prec}")
+                logging.info(f"ROC AUC Score: {roc_auc}")
+                logging.info(f"Recall: {rec}")
+                logging.info("Model testing completed")
+            except Exception as e:
+                logging.error(f"Error occurred in Setting mlflow experiment{e}")
+            return test_loss, test_accuracy, runid
         except Exception as e:
             logging.error(f"Error during model testing: {e}")
             raise e
@@ -218,14 +227,14 @@ class ModelBuilder:
     def initiate_model_building(self, train_dataset, val_dataset, class_weights):
         try:
             logging.info("Initiating model building process")
-            base_model, model = self.build_model()
-            model, history = self.compile_and_fit(
-                model, train_dataset, val_dataset, class_weights
-            )
-            model, history = self.transfer_learning(
-                model, train_dataset, val_dataset, class_weights
-            )
-            # model=load_model('outputs/data/model')
+            # base_model, model = self.build_model()
+            # model, history = self.compile_and_fit(
+            #     model, train_dataset, val_dataset, class_weights
+            # )
+            # model, history = self.transfer_learning(
+            #     model, train_dataset, val_dataset, class_weights
+            # )
+            model = load_model("outputs/data/model")
             test_loss, test_accuracy, run_id = self.test_model(model, val_dataset)
             logging.info("Model building process completed")
             model_artifact = ModelArtifact(

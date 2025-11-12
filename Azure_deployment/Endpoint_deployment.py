@@ -105,6 +105,7 @@ class AzureDeployment:
         try:
             logging.info(f"Initialize the deployment in azure with runid:{run_id}")
             resgistered_model =self.register_model(run_id)
+            logging.info(f"Registered model version: {resgistered_model.version}")
             model=self.ml_client.models.get(name="brain_classification_model_Restnet50",version=resgistered_model.version)
             scoringuri,scoring_key=self.deployments(model)
             return scoringuri,scoring_key
