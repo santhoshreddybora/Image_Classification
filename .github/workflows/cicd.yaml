@@ -99,13 +99,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 5️ Set up Azure CLI
-      - name: Setup Azure CLI
-        uses: azure/CLI@v2
-        with:
-          azcliversion: latest
-
-      # 6️ Run your endpoint deployment script
+      # 5 Run your endpoint deployment script
       - name: Deploy to Azure ML Online Endpoint
         env:
           SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -116,7 +110,7 @@ jobs:
         run: |
           echo " Starting deployment to Azure ML endpoint..."
           python Azure_deployment/Endpoint_Deployment.py
-      # 7️ (Optional) Show deployed endpoint details
+      # 6 (Optional) Show deployed endpoint details
       - name: Show endpoint info
         run: |
           echo " Deployment completed successfully!"
