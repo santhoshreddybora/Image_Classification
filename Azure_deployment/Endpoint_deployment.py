@@ -78,9 +78,15 @@ class AzureDeployment:
             active_names = [d.name for d in active_deployments]
             logging.info(f"Active deployments found: {active_names}")
 
-            # Toggle between 'blue' and 'green' deployment slots
-            new_deployment_name = "green" if "blue" in active_names else "blue"
-            old_deployment_name = "blue" if new_deployment_name == "green" else "green"
+            if not active_names:
+                new_deployment_name = "blue"
+                old_deployment_name = None
+                logging.info("🆕 No existing deployments found. Creating initial deployment 'blue'.")
+            # Case 2: Existing endpoint — toggle between blue/green
+            else:
+                new_deployment_name = "green" if "blue" in active_names else "blue"
+                old_deployment_name = "blue" if new_deployment_name == "green" else "green"
+                logging.info(f" Performing blue-green switch: New={new_deployment_name}, Old={old_deployment_name}")
             # create Deployment
             deployment=ManagedOnlineDeployment(
                 name=new_deployment_name,
@@ -105,10 +111,15 @@ class AzureDeployment:
     
     def endpoint_traffic(self, endpoint_name: str, new_deployment: str, old_deployment: str, rollout_percent: int = 20):
         try:
-            traffic_split={
-                old_deployment:100-rollout_percent,
-                new_deployment:rollout_percent
-            }
+            if old_deployment:
+                traffic_split={
+                    old_deployment:max(0,100-rollout_percent),
+                    new_deployment:rollout_percent
+                }
+                logging.info(f"Splitetd traffic to new deployment {rollout_percent}% {new_deployment}")
+            else:
+                traffic_split={new_deployment:100}
+                logging.info(f"First time deployment routing 100% traffic to blue version:")
             endpoint_update=ManagedOnlineEndpoint(
                 name=endpoint_name,
                 traffic=traffic_split
