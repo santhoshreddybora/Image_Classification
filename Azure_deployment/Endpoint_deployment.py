@@ -92,7 +92,6 @@ class AzureDeployment:
                 instance_count=1
             )
             deployment_result=self.ml_client.online_deployments.begin_create_or_update(deployment).result()
-            logging.info(f"Model deployed successfully. Deployment Reuslt{deployment_result}")
             logging.info(f"✅ Deployment state: {deployment_result.status}")
             logging.info(f"✅ Endpoint name: {endpoint_name}")
 
@@ -101,7 +100,10 @@ class AzureDeployment:
                                                    )
 
             updated_endpoint=self.ml_client.online_endpoints.begin_create_or_update(endpoint_traffic).result()
-            logging.info(f"Traffic updated 100% to blue model. {updated_endpoint}")
+            logging.info("✅ Traffic updated: 100% to 'blue' deployment")
+            endpoint = self.ml_client.online_endpoints.get(endpoint_name)
+            logging.info(f"🔍 Current traffic allocation: {endpoint.traffic}")
+            
             return scoringuri,scoring_key
         except Exception as e:
             logging.info(f"Error occurred when creating as endpoint and deployment {e}")
@@ -119,8 +121,8 @@ class AzureDeployment:
             return scoringuri,scoring_key
         except Exception as e:
             logging.info(f"Error occurred while initiating the deployment{e}")
+            raise e
 
 if __name__=="__main__":
     ad=AzureDeployment()
     ad.initalize_deployment(run_id='7cc39085-51a3-42cb-bb24-0a516b55a8fa')
-    
