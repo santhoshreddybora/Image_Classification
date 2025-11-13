@@ -6,7 +6,7 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
 from azure.ai.ml.entities import Model,Environment,CodeConfiguration
 from azure.ai.ml.constants import AssetTypes
-from entity.artifact_entity import ModelArtifact
+import mlflow
 import yaml
 from dotenv import load_dotenv
 from logger import logging
@@ -24,8 +24,6 @@ class AzureDeployment:
         workspace_name=os.getenv("WORKSPACE_NAME")
     )
 
-# run_id="74d052cc-a937-410a-a234-b6adb8c1fe80"
-# model_path = f"azureml://jobs/{run_id}/outputs/models"
     def register_model(self, runid: str):
             try:
                 if not runid:
@@ -64,7 +62,7 @@ class AzureDeployment:
             )
             self.ml_client.environments.create_or_update(env)
             #Create Endpoint
-            endpoint_name="rn-end"+ datetime.now().strftime("%d%H%M")
+            endpoint_name="rn-end01"
             endpoint=ManagedOnlineEndpoint(
                 name=endpoint_name,
                 description="Real-time endpoint for RestNet50",
@@ -73,14 +71,18 @@ class AzureDeployment:
             endpoint_result=self.ml_client.online_endpoints.begin_create_or_update(endpoint).result()
             logging.info(f"Endpoint created {endpoint_result}")
             # endpoint=self.ml_client.online_endpoints.get(name=endpoint_name)
-            scoringuri=endpoint_result.scoring_uri
-            logging.info(f"endpoint scoring uri{scoringuri}")
-            keys = self.ml_client.online_endpoints.get_keys(name=endpoint_name)
-            scoring_key=keys.primary_key
-            logging.info(f"Primary key {scoring_key}")
+            
+
+            active_deployments = list(self.ml_client.online_deployments.list(endpoint_name))
+            active_names = [d.name for d in active_deployments]
+            logging.info(f"Active deployments found: {active_names}")
+
+            # Toggle between 'blue' and 'green' deployment slots
+            new_deployment_name = "green" if "blue" in active_names else "blue"
+            old_deployment_name = "blue" if new_deployment_name == "green" else "green"
             # create Deployment
             deployment=ManagedOnlineDeployment(
-                name='blue',
+                name=new_deployment_name,
                 endpoint_name=endpoint_name,
                 model=model,
                 environment=env,
@@ -92,23 +94,36 @@ class AzureDeployment:
                 instance_count=1
             )
             deployment_result=self.ml_client.online_deployments.begin_create_or_update(deployment).result()
-            logging.info(f"✅ Deployment state: {deployment_result.status}")
-            logging.info(f"✅ Endpoint name: {endpoint_name}")
+            logging.info(f" Deployment state: {deployment_result}")
+            logging.info(f" Endpoint name: {endpoint_name}")
 
-            return endpoint_name,scoringuri,scoring_key
+            return endpoint_name,new_deployment_name,old_deployment_name
         except Exception as e:
             logging.info(f"Error occurred when creating as endpoint and deployment {e}")
             raise e  
     
-    def endpoint_traffic(self,endpoint_name):
+    def endpoint_traffic(self, endpoint_name: str, new_deployment: str, old_deployment: str, rollout_percent: int = 20):
         try:
-            endpoint_traffic=ManagedOnlineEndpoint(name=endpoint_name,
-                                                    traffic={"blue":100}
-                                                    )
-            updated_endpoint=self.ml_client.online_endpoints.begin_create_or_update(endpoint_traffic).result()
-            logging.info("✅ Traffic updated: 100% to 'blue' deployment")
+            traffic_split={
+                old_deployment:100-rollout_percent,
+                new_deployment:rollout_percent
+            }
+            endpoint_update=ManagedOnlineEndpoint(
+                name=endpoint_name,
+                traffic=traffic_split
+            )
+            updated_endpoint=self.ml_client.online_endpoints.begin_create_or_update(endpoint_update).result()
+            logging.info(" Traffic updated: 100% to 'blue' deployment")
             endpoint = self.ml_client.online_endpoints.get(endpoint_name)
-            logging.info(f"🔍 Current traffic allocation: {endpoint.traffic}")
+            logging.info(f" Current traffic allocation: {endpoint.traffic}")
+
+            scoringuri=updated_endpoint.scoring_uri
+            logging.info(f"endpoint scoring uri{scoringuri}")
+            keys = self.ml_client.online_endpoints.get_keys(name=endpoint_name)
+            scoring_key=keys.primary_key
+            logging.info(f"Primary key {scoring_key}")
+
+            return endpoint.traffic,scoringuri,scoring_key
         except Exception as e:
             logging.error(f"Error in traffic Updation {e}")
             raise e            
@@ -120,13 +135,31 @@ class AzureDeployment:
             resgistered_model =self.register_model(run_id)
             logging.info(f"Registered model version: {resgistered_model.version}")
             model=self.ml_client.models.get(name="brain_classification_model_Restnet50",version=resgistered_model.version)
-            endpoint_name,scoringuri,scoring_key=self.deployments(model)
-            self.endpoint_traffic(endpoint_name)
-            return scoringuri,scoring_key
+            endpoint_name,new_deployment_name,old_deployment_name=self.deployments(model)
+            traffic,scoringuri,scoringkey=self.endpoint_traffic(endpoint_name,new_deployment_name,old_deployment_name)
+            return traffic,scoringuri,scoringkey
         except Exception as e:
             logging.info(f"Error occurred while initiating the deployment{e}")
             raise e
+        
+    def get_latest_run_id(experiment_name: str) -> str:
+        client = mlflow.tracking.MlflowClient()
+        experiment = client.get_experiment_by_name(experiment_name)
+        if not experiment:
+            raise ValueError(f"Experiment '{experiment_name}' not found in MLflow.")
+
+        runs = client.search_runs(
+            experiment_ids=[experiment.experiment_id],
+            order_by=["attributes.start_time DESC"],
+            max_results=2
+        )
+        if not runs:
+            raise ValueError("No completed runs found in MLflow experiment.")
+        latest_run = runs[0]
+        print(runs)
+        return latest_run.info.run_id
 
 if __name__=="__main__":
     ad=AzureDeployment()
-    ad.initalize_deployment(run_id='7cc39085-51a3-42cb-bb24-0a516b55a8fa')
+    runid=ad.get_latest_run_id('Resnet50_Model_Training')
+    ad.initalize_deployment(run_id=runid)
