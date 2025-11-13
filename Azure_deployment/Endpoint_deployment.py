@@ -92,6 +92,8 @@ class AzureDeployment:
             )
             deployment_result=self.ml_client.online_deployments.begin_create_or_update(deployment).result()
             logging.info(f"Model deployed successfully. Deployment Reuslt{deployment_result}")
+            logging.info(f"✅ Deployment state: {deployment_result.status}")
+            logging.info(f"✅ Endpoint name: {endpoint_name}")
 
             endpoint_traffic=ManagedOnlineEndpoint(name=endpoint_name,
                                                    traffic={"blue":100}
@@ -102,6 +104,7 @@ class AzureDeployment:
             return scoringuri,scoring_key
         except Exception as e:
             logging.info(f"Error occurred when creating as endpoint and deployment {e}")
+            raise e  
         
         
 

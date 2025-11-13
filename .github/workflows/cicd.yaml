@@ -125,5 +125,8 @@ jobs:
       - name: Show endpoint info
         run: |
           echo " Deployment completed successfully!"
-          az ml online-endpoint list --output table
+          az ml online-endpoint list \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --workspace-name ${{ secrets.AZURE_WORKSPACE_NAME }} \
+            --output table
 
