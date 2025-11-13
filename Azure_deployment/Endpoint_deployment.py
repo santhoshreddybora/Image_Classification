@@ -7,6 +7,7 @@ from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
 from azure.ai.ml.entities import Model,Environment,CodeConfiguration
 from azure.ai.ml.constants import AssetTypes
 import mlflow
+from azureml.core import Workspace
 import yaml
 from dotenv import load_dotenv
 from logger import logging
@@ -143,6 +144,14 @@ class AzureDeployment:
             raise e
         
     def get_latest_run_id(self,experiment_name: str) -> str:
+        ws = Workspace(
+            subscription_id=os.getenv("SUBSCRIPTION_ID"),
+            resource_group=os.getenv("RESOURCE_GROUP"),
+            workspace_name=os.getenv("WORKSPACE_NAME")
+        )
+        mlflow.set_tracking_uri(ws.get_mlflow_tracking_uri())
+        logging.info(f"✅ MLflow tracking URI set to: {mlflow.get_tracking_uri()}")
+
         client = mlflow.tracking.MlflowClient()
         experiment = client.get_experiment_by_name(experiment_name)
         if not experiment:
