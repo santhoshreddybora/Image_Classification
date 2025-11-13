@@ -161,5 +161,5 @@ class AzureDeployment:
 
 if __name__=="__main__":
     ad=AzureDeployment()
-    runid=ad.get_latest_run_id('Resnet50_Model_Training')
+    runid=ad.get_latest_run_id(experiment_name='Resnet50_Model_Training')
     ad.initalize_deployment(run_id=runid)
