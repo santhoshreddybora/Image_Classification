@@ -95,20 +95,23 @@ class AzureDeployment:
             logging.info(f"✅ Deployment state: {deployment_result.status}")
             logging.info(f"✅ Endpoint name: {endpoint_name}")
 
+            return endpoint_name,scoringuri,scoring_key
+        except Exception as e:
+            logging.info(f"Error occurred when creating as endpoint and deployment {e}")
+            raise e  
+    
+    def endpoint_traffic(self,endpoint_name):
+        try:
             endpoint_traffic=ManagedOnlineEndpoint(name=endpoint_name,
-                                                   traffic={"blue":100}
-                                                   )
-
+                                                    traffic={"blue":100}
+                                                    )
             updated_endpoint=self.ml_client.online_endpoints.begin_create_or_update(endpoint_traffic).result()
             logging.info("✅ Traffic updated: 100% to 'blue' deployment")
             endpoint = self.ml_client.online_endpoints.get(endpoint_name)
             logging.info(f"🔍 Current traffic allocation: {endpoint.traffic}")
-            
-            return scoringuri,scoring_key
         except Exception as e:
-            logging.info(f"Error occurred when creating as endpoint and deployment {e}")
-            raise e  
-        
+            logging.error(f"Error in traffic Updation {e}")
+            raise e            
         
 
     def initalize_deployment(self,run_id):
@@ -117,7 +120,8 @@ class AzureDeployment:
             resgistered_model =self.register_model(run_id)
             logging.info(f"Registered model version: {resgistered_model.version}")
             model=self.ml_client.models.get(name="brain_classification_model_Restnet50",version=resgistered_model.version)
-            scoringuri,scoring_key=self.deployments(model)
+            endpoint_name,scoringuri,scoring_key=self.deployments(model)
+            self.endpoint_traffic(endpoint_name)
             return scoringuri,scoring_key
         except Exception as e:
             logging.info(f"Error occurred while initiating the deployment{e}")
