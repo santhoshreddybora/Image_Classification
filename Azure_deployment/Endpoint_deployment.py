@@ -6,6 +6,7 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
 from azure.ai.ml.entities import Model,Environment,CodeConfiguration
 from azure.ai.ml.constants import AssetTypes
+from entity.artifact_entity import ModelArtifact
 import yaml
 from dotenv import load_dotenv
 from logger import logging
@@ -118,3 +119,8 @@ class AzureDeployment:
             return scoringuri,scoring_key
         except Exception as e:
             logging.info(f"Error occurred while initiating the deployment{e}")
+
+if __name__=="__main__":
+    ad=AzureDeployment()
+    ad.initalize_deployment(run_id='7cc39085-51a3-42cb-bb24-0a516b55a8fa')
+    
