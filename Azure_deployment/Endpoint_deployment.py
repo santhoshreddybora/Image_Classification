@@ -98,8 +98,12 @@ class AzureDeployment:
                     scoring_script="score.py"
                 ),
                 instance_type="Standard_D2AS_V4",
-                instance_count=1
-            )
+                instance_count=1,
+                environment_variables={
+                            "AZURE_BLOB_CONN_STR": os.getenv("AZURE_BLOB_CONN_STR"),
+                            "APPINSIGHTS_INSTRUMENTATIONKEY": os.getenv("APPINSIGHTS_INSTRUMENTATIONKEY"),
+                        }
+                )
             deployment_result=self.ml_client.online_deployments.begin_create_or_update(deployment).result()
             logging.info(f" Deployment state: {deployment_result}")
             logging.info(f" Endpoint name: {endpoint_name}")

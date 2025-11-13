@@ -21,12 +21,24 @@ logger.setLevel(logging.INFO)
 
 def init():
     global model, blob_container
-
-    # --- Load model ---
     model_dir = os.getenv("AZUREML_MODEL_DIR", "outputs")
     model_path = os.path.join(model_dir, "model")
-    model = mlflow.keras.load_model(model_path)
-    logger.info(f" Model loaded from: {model_path}")
+
+    logger.info(f" Attempting to load MLflow model from: {model_path}")
+    print(" Attempting to load MLflow model from:", model_path)
+
+    try:
+        import mlflow
+        model = mlflow.keras.load_model(model_path)
+        logger.info(f" MLflow model loaded successfully from {model_path}")
+    except Exception as e:
+        logger.warning(f"MLflow model load failed: {e}")
+        try:
+            model = tf.keras.models.load_model("outputs/data/model")
+            logger.info(f"Fallback Keras model loaded from outputs/data/model")
+        except Exception as e2:
+            logger.error(f"Both MLflow and fallback model loading failed: {e2}")
+            raise e2
 
     # --- Setup Application Insights logging ---
     if "APPINSIGHTS_INSTRUMENTATIONKEY" in os.environ:
@@ -37,19 +49,25 @@ def init():
     # --- Setup Azure Blob client ---
     try:
         blob_conn_str = os.getenv("AZURE_BLOB_CONN_STR")
+        if not blob_conn_str:
+            raise ValueError("AZURE_BLOB_CONN_STR environment variable is missing!")
+
         container_name = "prediction-logs"
         blob_service_client = BlobServiceClient.from_connection_string(blob_conn_str)
         container_client = blob_service_client.get_container_client(container_name)
 
         if not container_client.exists():
             container_client.create_container()
+            logger.info(f"🆕 Created blob container: {container_name}")
+        else:
+            logger.info(f"✅ Connected to existing blob container: {container_name}")
 
+        # make sure it’s assigned globally
         blob_container = container_client
-        logger.info(f" Connected to Azure Blob container: {container_name}")
-    except Exception as e:
-        logger.error(f" Failed to connect to Azure Blob Storage: {e}")
-        blob_container = None
 
+    except Exception as e:
+        logger.error(f"❌ Failed to connect to Azure Blob Storage: {e}")
+        blob_container = None
 
 def preprocess_data(image_bytes):
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -83,7 +101,7 @@ def run(raw_data):
         preds = model.predict(input_arr)
         predicted_class = classes[int(np.argmax(preds))]
         confidence = float(np.max(preds))
-        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # --- Prepare log entry ---
         log_entry = {
@@ -96,7 +114,7 @@ def run(raw_data):
         # --- Save prediction results & image ---
         if blob_container:
             # Folder for JSON and image
-            today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
 
             # 1️⃣ Append to daily JSON log
             blob_name = f"prediction_logs/{today}.json"
