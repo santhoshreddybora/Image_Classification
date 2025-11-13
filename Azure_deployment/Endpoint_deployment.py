@@ -142,7 +142,7 @@ class AzureDeployment:
             logging.info(f"Error occurred while initiating the deployment{e}")
             raise e
         
-    def get_latest_run_id(experiment_name: str) -> str:
+    def get_latest_run_id(self,experiment_name: str) -> str:
         client = mlflow.tracking.MlflowClient()
         experiment = client.get_experiment_by_name(experiment_name)
         if not experiment:
